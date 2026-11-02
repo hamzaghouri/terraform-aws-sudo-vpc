@@ -19,10 +19,10 @@ locals {
 
   # Carving splits cidr into four blocks and each block into three subnets, 8 bits in all.
   # A /20 gives /28 subnets, the smallest AWS allows; smaller VPCs are rejected below.
-  # One subnet per tier per AZ in var.azs, up to three.
-  carve_az_count = min(3, length(var.azs))
-  carve_prefix   = try(tonumber(split("/", local.cidr)[1]), null)
-  subnets        = try([for cidr_block in cidrsubnets(local.cidr, 4, 4, 4, 4) : slice(cidrsubnets(cidr_block, 4, 4, 4), 0, local.carve_az_count)], [[], [], []])
+  # Always three per tier, as in v0.0.5, so upgrading never drops a subnet. With fewer than
+  # three AZs the subnets wrap around var.azs.
+  carve_prefix = try(tonumber(split("/", local.cidr)[1]), null)
+  subnets      = try([for cidr_block in cidrsubnets(local.cidr, 4, 4, 4, 4) : cidrsubnets(cidr_block, 4, 4, 4)], [[], [], []])
 
   # Given subnet lists are always used; without them the module carves subnets from cidr.
   use_given_subnets = local.max_subnet_length > 0

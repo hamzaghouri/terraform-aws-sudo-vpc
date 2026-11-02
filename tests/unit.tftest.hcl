@@ -788,7 +788,8 @@ run "public_subnets_assign_no_public_ip_by_default" {
   }
 }
 
-run "carves_one_subnet_per_given_az" {
+# Carving keeps the v0.0.5 layout so an upgrade never drops a subnet.
+run "carves_three_subnets_with_two_azs" {
   command = plan
 
   variables {
@@ -796,8 +797,13 @@ run "carves_one_subnet_per_given_az" {
   }
 
   assert {
-    condition     = length(aws_subnet.public) == 2 && aws_subnet.public[*].availability_zone == ["eu-west-1a", "eu-west-1b"]
-    error_message = "With two AZs given, the module must carve two subnets per tier, one in each."
+    condition     = length(aws_subnet.public) == 3 && aws_subnet.public[*].availability_zone == ["eu-west-1a", "eu-west-1b", "eu-west-1a"]
+    error_message = "With two AZs given, the module must still carve three subnets per tier, wrapping around azs."
+  }
+
+  assert {
+    condition     = aws_subnet.database[*].cidr_block == ["10.0.32.0/24", "10.0.33.0/24", "10.0.34.0/24"]
+    error_message = "Carved subnet CIDRs must match v0.0.5."
   }
 }
 
@@ -831,7 +837,7 @@ run "carves_only_in_given_azs" {
   }
 
   assert {
-    condition     = length(aws_subnet.private) == 2 && aws_subnet.private[*].availability_zone_id == ["euw1-az2", "euw1-az3"]
+    condition     = aws_subnet.private[*].availability_zone_id == ["euw1-az2", "euw1-az3", "euw1-az2"]
     error_message = "Carving must use exactly the AZs given, by name or by ID."
   }
 }
