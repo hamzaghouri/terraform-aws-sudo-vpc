@@ -677,6 +677,11 @@ run "flow_log_trust_policy_conditions" {
 run "manages_default_route_table_and_nacl" {
   command = plan
 
+  variables {
+    manage_default_route_table = true
+    manage_default_network_acl = true
+  }
+
   assert {
     condition     = length(aws_default_route_table.this) == 1 && length(aws_default_route_table.this[0].route) == 0
     error_message = "The default route table must be managed with no routes, so subnets left on it have no path out."
@@ -703,17 +708,13 @@ run "manages_default_route_table_and_nacl" {
   }
 }
 
-run "default_route_table_and_nacl_can_be_left_alone" {
+# Off by default like v0.0.5, so an upgrade does not delete routes or rules added outside Terraform.
+run "default_route_table_and_nacl_left_alone_by_default" {
   command = plan
-
-  variables {
-    manage_default_route_table = false
-    manage_default_network_acl = false
-  }
 
   assert {
     condition     = length(aws_default_route_table.this) == 0 && length(aws_default_network_acl.this) == 0
-    error_message = "manage_default_route_table and manage_default_network_acl = false must leave both alone."
+    error_message = "The default route table and NACL must only be adopted when asked for."
   }
 }
 
@@ -721,7 +722,8 @@ run "default_nacl_custom_rules" {
   command = plan
 
   variables {
-    cidr = "10.0.0.0/16"
+    cidr                       = "10.0.0.0/16"
+    manage_default_network_acl = true
     default_network_acl_ingress = [
       { rule_no = 100, action = "allow", protocol = "-1", cidr_block = "10.0.0.0/16" },
     ]
@@ -738,7 +740,9 @@ run "no_default_resources_without_vpc" {
   command = plan
 
   variables {
-    create_vpc = false
+    create_vpc                 = false
+    manage_default_route_table = true
+    manage_default_network_acl = true
   }
 
   assert {
