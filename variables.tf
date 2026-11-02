@@ -1209,9 +1209,9 @@ variable "redshift_acl_tags" {
 ################################################################################
 
 variable "gateway_endpoints" {
-  description = "Gateway endpoints to create, attached to every route table the module creates. Gateway endpoints are free and keep S3 and DynamoDB traffic off NAT. Set to [] to create none."
+  description = "Gateway endpoints to create (s3, dynamodb), attached to every route table the module creates. Gateway endpoints are free and keep S3 and DynamoDB traffic off NAT. Off by default, so upgrading does not reroute traffic in existing VPCs."
   type        = set(string)
-  default     = ["s3", "dynamodb"]
+  default     = []
   nullable    = false
 
   validation {

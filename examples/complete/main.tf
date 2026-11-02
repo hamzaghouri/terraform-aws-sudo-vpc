@@ -53,8 +53,9 @@ module "vpc" {
   elasticache_dedicated_network_acl = true
   redshift_dedicated_network_acl    = true
 
-  # S3 and DynamoDB gateway endpoints are on by default. STS is here as one
-  # interface endpoint; each costs about USD 7 per AZ per month.
+  # Gateway endpoints are free. STS is here as one interface endpoint; each
+  # costs about USD 7 per AZ per month.
+  gateway_endpoints   = ["s3", "dynamodb"]
   interface_endpoints = ["sts"]
 
   enable_dhcp_options      = true

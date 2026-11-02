@@ -1096,10 +1096,11 @@ run "no_dedicated_network_acls_by_default" {
   }
 }
 
-run "gateway_endpoints_by_default" {
+run "gateway_endpoints_on_every_route_table" {
   command = apply
 
   variables {
+    gateway_endpoints                  = ["s3", "dynamodb"]
     enable_nat_gateway                 = true
     one_nat_gateway_per_az             = true
     create_database_subnet_route_table = true
@@ -1108,7 +1109,7 @@ run "gateway_endpoints_by_default" {
 
   assert {
     condition     = toset(keys(aws_vpc_endpoint.gateway)) == toset(["s3", "dynamodb"]) && length(aws_vpc_endpoint.interface) == 0
-    error_message = "S3 and DynamoDB gateway endpoints must be on by default, with no interface endpoints."
+    error_message = "Only the gateway endpoints asked for must be created, with no interface endpoints."
   }
 
   assert {
@@ -1119,16 +1120,12 @@ run "gateway_endpoints_by_default" {
   }
 }
 
-run "no_gateway_endpoints_when_empty" {
+run "no_gateway_endpoints_by_default" {
   command = plan
-
-  variables {
-    gateway_endpoints = []
-  }
 
   assert {
     condition     = length(aws_vpc_endpoint.gateway) == 0
-    error_message = "gateway_endpoints = [] must create no endpoints."
+    error_message = "Gateway endpoints must be opt-in, so an upgrade does not reroute S3 and DynamoDB traffic."
   }
 }
 
@@ -1409,6 +1406,7 @@ run "s3_gateway_and_interface_endpoint_ids" {
   command = apply
 
   variables {
+    gateway_endpoints   = ["s3"]
     interface_endpoints = ["s3"]
   }
 
