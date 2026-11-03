@@ -369,7 +369,7 @@ run "nat_gateway_per_subnet_with_carved_subnets" {
   }
 }
 
-run "vgw_propagation_single_nat_given_subnets" {
+run "vgw_propagation_single_nat_keeps_v005_addresses" {
   command = plan
 
   variables {
@@ -381,9 +381,16 @@ run "vgw_propagation_single_nat_given_subnets" {
     propagate_private_route_tables_vgw = true
   }
 
+  # v0.0.5 made one propagation per private subnet. Keeping that count means upgrading never
+  # destroys one, which would turn propagation off on the route table they all share.
   assert {
-    condition     = length(aws_route_table.private) == 1 && length(aws_vpn_gateway_route_propagation.private) == 1
-    error_message = "With one private route table there must be exactly one private VGW propagation, not one per subnet."
+    condition     = length(aws_route_table.private) == 1 && length(aws_vpn_gateway_route_propagation.private) == 3
+    error_message = "With a single NAT gateway there must still be one private VGW propagation per private subnet, as in v0.0.5."
+  }
+
+  assert {
+    condition     = alltrue([for p in aws_vpn_gateway_route_propagation.private : p.route_table_id == aws_route_table.private[0].id])
+    error_message = "With one private route table every private propagation must point at it."
   }
 }
 

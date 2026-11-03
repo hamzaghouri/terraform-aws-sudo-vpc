@@ -511,12 +511,14 @@ resource "aws_vpn_gateway_route_propagation" "public" {
   vpn_gateway_id = local.propagation_vpn_gateway_id
 }
 
-# One propagation per private route table. There is one private route table per NAT gateway,
-# not per private subnet, so counting subnets created duplicates.
+# One propagation per private subnet, as in v0.0.5, and at least one per private route table so
+# carved subnets get theirs too. With a single NAT gateway several of them point at the same
+# route table. That is redundant but harmless, and counting route tables instead would destroy
+# the extras on upgrade, which turns propagation off for the route table they share.
 resource "aws_vpn_gateway_route_propagation" "private" {
-  count = local.propagate_vgw && var.propagate_private_route_tables_vgw ? local.private_route_table_count : 0
+  count = local.propagate_vgw && var.propagate_private_route_tables_vgw && local.private_route_table_count > 0 ? max(local.private_route_table_count, length(var.private_subnets)) : 0
 
-  route_table_id = aws_route_table.private[count.index].id
+  route_table_id = element(aws_route_table.private[*].id, count.index)
   vpn_gateway_id = local.propagation_vpn_gateway_id
 }
 
